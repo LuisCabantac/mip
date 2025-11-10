@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: "mIP",
     description: "mIP — a modern web app built with Next.js",
-    url: "https://mip.vercel.app",
+    url: "https://mip-web.vercel.app",
     siteName: "mIP",
-    images: [{ url: "https://mIP.vercel.app/app-logo.png" }],
+    images: [{ url: "https://mip-web.vercel.app/app-logo.png" }],
   },
 };
 
