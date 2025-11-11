@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 export async function getAuthToken(): Promise<string | null> {
   try {
@@ -31,7 +30,7 @@ export async function isAuthenticated(): Promise<boolean> {
   return !!token;
 }
 
-export async function signOut(): Promise<void> {
+export async function signOut() {
   "use server";
 
   const cookieStore = await cookies();
@@ -39,5 +38,5 @@ export async function signOut(): Promise<void> {
   cookieStore.delete("auth-token");
   cookieStore.delete("user-data");
 
-  redirect("/login");
+  return { success: true, message: "Sign out successful" };
 }

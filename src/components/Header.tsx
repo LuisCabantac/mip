@@ -1,18 +1,35 @@
-import Link from "next/link";
+"use client";
 
-import { isAuthenticated, signOut } from "@/lib/auth";
+import Link from "next/link";
+import { toast } from "sonner";
+import { usePathname, useRouter } from "next/navigation";
 
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { headers } from "next/headers";
 
-export default async function Header() {
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname");
-  const authenticated = await isAuthenticated();
+export default function Header({
+  isAuthenticated,
+  onSignOut,
+}: {
+  isAuthenticated: boolean;
+  onSignOut: () => Promise<{
+    success: boolean;
+    message: string;
+  }>;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
 
   if (pathname === "/login") {
     return null;
+  }
+
+  async function handleSignOut() {
+    const response = await onSignOut();
+    if (response.success) {
+      toast.success(response.message);
+      router.push("/login");
+    }
   }
 
   return (
@@ -20,12 +37,10 @@ export default async function Header() {
       <Link href="/" aria-label="go home">
         <Logo size={40} />
       </Link>
-      {authenticated ? (
-        <form action={signOut}>
-          <Button type="submit" className="cursor-pointer">
-            Sign out
-          </Button>
-        </form>
+      {isAuthenticated ? (
+        <Button onClick={handleSignOut} className="cursor-pointer">
+          Sign out
+        </Button>
       ) : (
         <div></div>
       )}

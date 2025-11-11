@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Jost } from "next/font/google";
 
 import "./globals.css";
+import { isAuthenticated, signOut } from "@/lib/auth";
 
 import Header from "@/components/Header";
 import Provider from "@/components/Provider";
@@ -25,16 +26,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const authenticated = await isAuthenticated();
+
   return (
     <html lang="en">
       <body className={`${jost.variable} antialiased`}>
         <Provider>
-          <Header />
+          <Header isAuthenticated={authenticated} onSignOut={signOut} />
           {children}
         </Provider>
         <Toaster position="top-center" />
