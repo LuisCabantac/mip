@@ -2,7 +2,7 @@
 
 import L from "leaflet";
 import { Map as LeafletMap } from "leaflet";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
@@ -43,69 +43,32 @@ function MapResizer() {
   return null;
 }
 
-function MapUpdater({
-  center,
-  zoom,
-}: {
-  center: [number, number];
-  zoom: number;
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (
-      map &&
-      center &&
-      center.length === 2 &&
-      !isNaN(center[0]) &&
-      !isNaN(center[1])
-    ) {
-      const safeZoom = Math.min(zoom, 15);
-
-      try {
-        map.setView(center, safeZoom);
-      } catch {}
-    } else {
-    }
-  }, [map, center, zoom]);
-
-  return null;
-}
-
-function TileLayerComponent() {
-  const map = useMap();
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    if (map && map.getContainer() && map.getPanes()) {
-      const timer = setTimeout(() => {
-        setIsReady(true);
-      }, 0);
-
-      return () => clearTimeout(timer);
-    }
-  }, [map]);
-
-  if (!isReady) {
-    return null;
-  }
-
-  return (
-    <TileLayer
-      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-    />
-  );
-}
-
 export default function Map({ center, zoom = 8 }: MapProps) {
   const mapRef = useRef<LeafletMap | null>(null);
 
   const safeZoom = Math.min(zoom, 15);
 
+  // Create a unique key based on center coordinates to force remount when location changes significantly
+  const mapKey = `${Math.round(center[0] * 1000)}-${Math.round(
+    center[1] * 1000
+  )}`;
+
+  const handleMapReady = () => {
+    setTimeout(() => {
+      try {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize();
+        }
+      } catch (error) {
+        console.warn("Map ready error:", error);
+      }
+    }, 200);
+  };
+
   return (
     <div className="w-full border overflow-hidden rounded-lg h-[300px]">
       <MapContainer
+        key={mapKey}
         ref={mapRef}
         center={center}
         zoom={safeZoom}
@@ -114,18 +77,12 @@ export default function Map({ center, zoom = 8 }: MapProps) {
         zoomControl={false}
         dragging={false}
         attributionControl={false}
-        whenReady={() => {
-          setTimeout(() => {
-            try {
-              mapRef.current?.invalidateSize();
-            } catch (error) {
-              console.warn("Map invalidateSize error in whenReady:", error);
-            }
-          }, 200);
-        }}
+        whenReady={handleMapReady}
       >
-        <MapUpdater center={center} zoom={safeZoom} />
-        <TileLayerComponent />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
         <Marker position={center}>
           <Popup>
             <div className="text-center">
