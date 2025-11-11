@@ -118,4 +118,9 @@
   body {
     @apply bg-background text-foreground font-sans;
   }
+
+  .leaflet-tile-pane {
+    filter: grayscale(100%);
+    -webkit-filter: grayscale(100%);
+  }
 }
