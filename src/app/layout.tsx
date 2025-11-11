@@ -3,6 +3,8 @@ import { Jost } from "next/font/google";
 
 import "./globals.css";
 
+import Header from "@/components/Header";
+
 const jost = Jost({
   variable: "--font-jost",
   subsets: ["latin"],
@@ -27,7 +29,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${jost.variable} antialiased`}>{children}</body>
+      <body className={`${jost.variable} antialiased`}>
+        <Header />
+        {children}
+      </body>
     </html>
   );
 }
