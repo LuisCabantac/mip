@@ -5,6 +5,7 @@ import "./globals.css";
 
 import Header from "@/components/Header";
 import Provider from "@/components/Provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const jost = Jost({
   variable: "--font-jost",
@@ -36,6 +37,7 @@ export default function RootLayout({
           <Header />
           {children}
         </Provider>
+        <Toaster position="top-center" />
       </body>
     </html>
   );
