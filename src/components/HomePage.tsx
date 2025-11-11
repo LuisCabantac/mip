@@ -552,101 +552,111 @@ export default function HomePage({
                       </Button>
                     </div>
                   ) : null}
-                  <ul className="flex flex-col w-full gap-2 text-balance">
-                    {savedSearchedData?.data?.map((item) => (
-                      <li key={item.id} className="space-y-2">
-                        {Array.isArray(item.geolocationData) ? (
-                          item.geolocationData.map((geoData, index) => (
-                            <div
-                              key={index}
-                              className="text-sm border-b pb-2 last:border-b-0"
-                            >
-                              <div className="flex items-start gap-4">
-                                <Checkbox
-                                  checked={selectedHistory.includes(item.id)}
-                                  onCheckedChange={(checked) => {
-                                    handleSetHistory(
-                                      item.id,
-                                      checked as boolean
-                                    );
-                                  }}
-                                  disabled={deleteSelectedHistoryIsPending}
-                                />
-                                <button
-                                  onClick={() => {
-                                    setSearchedIP(geoData.ip);
-                                    setIsFromHistory(true);
-                                    form.setValue("ip", geoData.ip);
-                                  }}
-                                  className="text-start group cursor-pointer w-full"
-                                >
-                                  <div className="group-hover:underline">
-                                    <strong>IP:</strong> {geoData.ip}
-                                  </div>
-                                  <div className="group-hover:underline">
-                                    <strong>City:</strong> {geoData.city}
-                                  </div>
-                                  <div className="group-hover:underline">
-                                    <strong>Country:</strong> {geoData.country}
-                                  </div>
-                                </button>
+                  {savedSearchedData?.data?.length ? (
+                    <ul className="flex flex-col w-full gap-2 text-balance">
+                      {savedSearchedData.data.map((item) => (
+                        <li key={item.id} className="space-y-2">
+                          {Array.isArray(item.geolocationData) ? (
+                            item.geolocationData.map((geoData, index) => (
+                              <div
+                                key={index}
+                                className="text-sm border-b pb-2 last:border-b-0"
+                              >
+                                <div className="flex items-start gap-4">
+                                  <Checkbox
+                                    checked={selectedHistory.includes(item.id)}
+                                    onCheckedChange={(checked) => {
+                                      handleSetHistory(
+                                        item.id,
+                                        checked as boolean
+                                      );
+                                    }}
+                                    disabled={deleteSelectedHistoryIsPending}
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      setSearchedIP(geoData.ip);
+                                      setIsFromHistory(true);
+                                      form.setValue("ip", geoData.ip);
+                                    }}
+                                    className="text-start group cursor-pointer w-full"
+                                  >
+                                    <div className="group-hover:underline">
+                                      <strong>IP:</strong> {geoData.ip}
+                                    </div>
+                                    <div className="group-hover:underline">
+                                      <strong>City:</strong> {geoData.city}
+                                    </div>
+                                    <div className="group-hover:underline">
+                                      <strong>Country:</strong>{" "}
+                                      {geoData.country}
+                                    </div>
+                                  </button>
+                                </div>
                               </div>
+                            ))
+                          ) : item.geolocationData &&
+                            !Array.isArray(item.geolocationData) ? (
+                            <div className="text-sm flex items-start gap-2">
+                              <Checkbox
+                                checked={selectedHistory.includes(item.id)}
+                                onCheckedChange={(checked) => {
+                                  handleSetHistory(item.id, checked as boolean);
+                                }}
+                                disabled={deleteSelectedHistoryIsPending}
+                              />
+                              <button
+                                onClick={() => {
+                                  const geoData =
+                                    item.geolocationData as unknown as GeolocationData;
+                                  setSearchedIP(geoData.ip);
+                                  setIsFromHistory(true);
+                                  form.setValue("ip", geoData.ip);
+                                }}
+                                className="text-start group w-full cursor-pointer"
+                              >
+                                <div className="group-hover:underline">
+                                  <strong>IP:</strong>{" "}
+                                  {
+                                    (
+                                      item.geolocationData as unknown as GeolocationData
+                                    ).ip
+                                  }
+                                </div>
+                                <div className="group-hover:underline">
+                                  <strong>City:</strong>{" "}
+                                  {
+                                    (
+                                      item.geolocationData as unknown as GeolocationData
+                                    ).city
+                                  }
+                                </div>
+                                <div className="group-hover:underline">
+                                  <strong>Country:</strong>{" "}
+                                  {
+                                    (
+                                      item.geolocationData as unknown as GeolocationData
+                                    ).country
+                                  }
+                                </div>
+                              </button>
                             </div>
-                          ))
-                        ) : item.geolocationData &&
-                          !Array.isArray(item.geolocationData) ? (
-                          <div className="text-sm flex items-start gap-2">
-                            <Checkbox
-                              checked={selectedHistory.includes(item.id)}
-                              onCheckedChange={(checked) => {
-                                handleSetHistory(item.id, checked as boolean);
-                              }}
-                              disabled={deleteSelectedHistoryIsPending}
-                            />
-                            <button
-                              onClick={() => {
-                                const geoData =
-                                  item.geolocationData as unknown as GeolocationData;
-                                setSearchedIP(geoData.ip);
-                                setIsFromHistory(true);
-                                form.setValue("ip", geoData.ip);
-                              }}
-                              className="text-start group w-full cursor-pointer"
-                            >
-                              <div className="group-hover:underline">
-                                <strong>IP:</strong>{" "}
-                                {
-                                  (
-                                    item.geolocationData as unknown as GeolocationData
-                                  ).ip
-                                }
-                              </div>
-                              <div className="group-hover:underline">
-                                <strong>City:</strong>{" "}
-                                {
-                                  (
-                                    item.geolocationData as unknown as GeolocationData
-                                  ).city
-                                }
-                              </div>
-                              <div className="group-hover:underline">
-                                <strong>Country:</strong>{" "}
-                                {
-                                  (
-                                    item.geolocationData as unknown as GeolocationData
-                                  ).country
-                                }
-                              </div>
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-500">
-                            No geolocation data available
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                          ) : (
+                            <div className="text-sm text-gray-500">
+                              No geolocation data available
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No search history available</p>
+                      <p className="text-sm mt-1">
+                        Search for IP addresses to build your history
+                      </p>
+                    </div>
+                  )}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
