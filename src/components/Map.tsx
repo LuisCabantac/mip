@@ -53,8 +53,6 @@ function MapUpdater({
   const map = useMap();
 
   useEffect(() => {
-    console.log("MapUpdater received coordinates:", center, "zoom:", zoom);
-
     if (
       map &&
       center &&
@@ -63,15 +61,11 @@ function MapUpdater({
       !isNaN(center[1])
     ) {
       const safeZoom = Math.min(zoom, 15);
-      console.log("Setting map view to:", center, "with zoom:", safeZoom);
 
       try {
         map.setView(center, safeZoom);
-      } catch (error) {
-        console.error("Error setting map view:", error);
-      }
+      } catch {}
     } else {
-      console.warn("Invalid coordinates received:", center);
     }
   }, [map, center, zoom]);
 
@@ -108,14 +102,6 @@ export default function Map({ center, zoom = 8 }: MapProps) {
   const mapRef = useRef<LeafletMap | null>(null);
 
   const safeZoom = Math.min(zoom, 15);
-  console.log(
-    "Map component received center:",
-    center,
-    "zoom:",
-    zoom,
-    "safeZoom:",
-    safeZoom
-  );
 
   return (
     <div className="w-full border overflow-hidden rounded-lg h-[300px]">
