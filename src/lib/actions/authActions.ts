@@ -1,13 +1,14 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
-export async function signIn(formData: FormData) {
+import { Credentials } from "@/lib/schema";
+
+export async function signIn({ email, password }: Credentials) {
   try {
     const requestBody = {
-      email: formData.get("email"),
-      password: formData.get("password"),
+      email,
+      password,
     };
 
     const response = await fetch(`${process.env.API_URL}/api/login`, {
@@ -19,13 +20,16 @@ export async function signIn(formData: FormData) {
     });
 
     if (!response.ok) {
-      throw new Error("Invalid email or password");
+      return { error: response.status, message: "Sign in failed" };
     }
 
     const data = await response.json();
 
     if (!data?.data?.token || !data?.data?.user) {
-      throw new Error("Invalid server response");
+      return {
+        error: 401,
+        message: "Invalid credentials or missing authentication data",
+      };
     }
 
     const cookieStore = await cookies();
@@ -46,10 +50,8 @@ export async function signIn(formData: FormData) {
       path: "/",
     });
 
-    const redirectTo = formData.get("redirect")?.toString() || "/";
-
-    redirect(redirectTo);
-  } catch (error) {
-    throw error;
+    return { success: true, message: "Sign in successful" };
+  } catch {
+    return { error: 500, message: "An error occurred during authentication" };
   }
 }
