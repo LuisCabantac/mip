@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Jost } from "next/font/google";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import "./globals.css";
 
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
   },
 };
 
+const queryClient = new QueryClient();
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,7 +34,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${jost.variable} antialiased`}>
         <Header />
-        {children}
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
       </body>
     </html>
   );
