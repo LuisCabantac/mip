@@ -23,3 +23,11 @@ export const geolocationDataSchema = z.object({
 });
 
 export type GeolocationData = z.infer<typeof geolocationDataSchema>;
+
+export const signInSchema = z.object({
+  email: z.string(),
+  password: z.string(),
+  redirect: z.string().optional(),
+});
+
+export type Credentials = z.infer<typeof signInSchema>;
