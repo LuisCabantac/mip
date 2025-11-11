@@ -103,6 +103,7 @@ export default function HomePage({
       queryClient.invalidateQueries({
         queryKey: [`${userData?.id}-history`],
       });
+      setSelectedHistory([]);
     },
   });
 
