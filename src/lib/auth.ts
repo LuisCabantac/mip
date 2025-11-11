@@ -32,6 +32,8 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 export async function signOut(): Promise<void> {
+  "use server";
+
   const cookieStore = await cookies();
 
   cookieStore.delete("auth-token");
