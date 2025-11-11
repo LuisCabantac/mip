@@ -18,9 +18,18 @@ export async function signIn(formData: FormData) {
       body: JSON.stringify(requestBody),
     });
 
+    if (!response.ok) {
+      throw new Error("Invalid email or password");
+    }
+
     const data = await response.json();
 
+    if (!data?.data?.token || !data?.data?.user) {
+      throw new Error("Invalid server response");
+    }
+
     const cookieStore = await cookies();
+
     cookieStore.set("auth-token", data.data.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -40,5 +49,7 @@ export async function signIn(formData: FormData) {
     const redirectTo = formData.get("redirect")?.toString() || "/";
 
     redirect(redirectTo);
-  } catch {}
+  } catch (error) {
+    throw error;
+  }
 }
