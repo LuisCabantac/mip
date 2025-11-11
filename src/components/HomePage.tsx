@@ -4,8 +4,8 @@ import z from "zod";
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { Controller, useForm, useWatch } from "react-hook-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { GeolocationData, searchIPSchema } from "@/lib/schema";
 import {
@@ -15,11 +15,19 @@ import {
 } from "@/lib/services/ip";
 
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const DynamicMap = dynamic(() => import("@/components/Map"), {
   ssr: false,
@@ -29,11 +37,27 @@ const DynamicMap = dynamic(() => import("@/components/Map"), {
 });
 
 export default function HomePage({
+  userData,
+  isAuthenticated,
+  onGetAllHistory,
   onCreateHistory,
+  onDeleteHistory,
 }: {
+  userData: {
+    id: string;
+    email: string;
+  } | null;
+  isAuthenticated: boolean;
+  onGetAllHistory: () => Promise<{
+    data: { id: string; geolocationData: GeolocationData[] }[];
+  } | null>;
   onCreateHistory: (geolocationData: GeolocationData) => Promise<void>;
+  onDeleteHistory: (ids: string[]) => Promise<void>;
 }) {
   const [searchedIP, setSearchedIP] = useState("");
+  const [selectedHistory, setSelectedHistory] = useState<string[]>([]);
+  const [isFromHistory, setIsFromHistory] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: userIPData, isLoading: userIPDataIsLoading } = useQuery({
     queryKey: [""],
@@ -44,26 +68,49 @@ export default function HomePage({
     {
       queryKey: [`searched-ip-${searchedIP}`],
       queryFn: () => getUserIPInfoByIP(searchedIP),
-      enabled: !!searchedIP,
+      enabled: !!searchedIP && isAuthenticated,
     }
   );
 
   const { data: geoInfoData, isLoading: geoInfoDataIsLoading } = useQuery({
     queryKey: [`ip-${userIPData?.ip}`],
     queryFn: () => getGeoInfoByIP(userIPData?.ip ?? ""),
-    enabled: !!userIPData?.ip,
+    enabled: !!userIPData?.ip && isAuthenticated,
   });
 
   const { data: searchedGeoInfoData, isLoading: searchedGeoInfoDataIsLoading } =
     useQuery({
       queryKey: [`searched-ip-${searchedIP}-geo`],
       queryFn: () => getGeoInfoByIP(searchedIP),
-      enabled: !!searchedIP,
+      enabled: !!searchedIP && isAuthenticated,
     });
 
   const { mutate: saveSearchedData } = useMutation({
     mutationFn: onCreateHistory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`${userData?.id}-history`],
+      });
+    },
   });
+
+  const {
+    mutate: deleteSelectedHistory,
+    isPending: deleteSelectedHistoryIsPending,
+  } = useMutation({
+    mutationFn: onDeleteHistory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [`${userData?.id}-history`],
+      });
+    },
+  });
+
+  const { data: savedSearchedData, isLoading: savedSearchedDataIsLoading } =
+    useQuery({
+      queryKey: [`${userData?.id}-history`],
+      queryFn: onGetAllHistory,
+    });
 
   const form = useForm<z.infer<typeof searchIPSchema>>({
     resolver: zodResolver(searchIPSchema),
@@ -79,13 +126,21 @@ export default function HomePage({
 
   async function onSubmit(values: z.infer<typeof searchIPSchema>) {
     setSearchedIP(values.ip);
+    setIsFromHistory(false);
   }
 
   function handleClearSearch() {
     setSearchedIP("");
+    setIsFromHistory(false);
     form.reset({
       ip: userIPData?.ip ?? "",
     });
+  }
+
+  function handleSetHistory(id: string, checked: boolean) {
+    setSelectedHistory((prev) =>
+      checked ? [...prev, id] : prev.filter((historyId) => historyId !== id)
+    );
   }
 
   useEffect(() => {
@@ -99,7 +154,8 @@ export default function HomePage({
       searchedIPData &&
       searchedGeoInfoData &&
       !searchedIPDataIsLoading &&
-      !searchedGeoInfoDataIsLoading
+      !searchedGeoInfoDataIsLoading &&
+      !isFromHistory
     ) {
       const geolocationData = {
         ip: searchedIPData.ip,
@@ -120,6 +176,9 @@ export default function HomePage({
       };
 
       saveSearchedData(geolocationData);
+      queryClient.invalidateQueries({
+        queryKey: [`${userData?.id}-history`],
+      });
     }
   }, [
     userIPData?.ip,
@@ -130,6 +189,9 @@ export default function HomePage({
     searchedIPDataIsLoading,
     searchedGeoInfoDataIsLoading,
     saveSearchedData,
+    isFromHistory,
+    queryClient,
+    userData?.id,
   ]);
 
   return (
@@ -290,74 +352,78 @@ export default function HomePage({
               </>
             ) : (
               <>
-                {userIPData && !userIPDataIsLoading && (
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">
-                      Your IP Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <strong>IP:</strong> {userIPData.ip}
-                      </div>
-                      <div>
-                        <strong>Hostname:</strong> {userIPData.hostname}
-                      </div>
-                      <div>
-                        <strong>City:</strong> {userIPData.city}
-                      </div>
-                      <div>
-                        <strong>Region:</strong> {userIPData.region}
-                      </div>
-                      <div>
-                        <strong>Country:</strong> {userIPData.country}
-                      </div>
-                      <div>
-                        <strong>Location:</strong> {userIPData.loc}
-                      </div>
-                      <div>
-                        <strong>Organization:</strong> {userIPData.org}
-                      </div>
-                      <div>
-                        <strong>Postal:</strong> {userIPData.postal}
-                      </div>
-                      <div className="md:col-span-2">
-                        <strong>Timezone:</strong> {userIPData.timezone}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {geoInfoData && !geoInfoDataIsLoading && (
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">
-                      Geographic Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <strong>ASN:</strong> {geoInfoData.asn}
-                      </div>
-                      <div>
-                        <strong>AS Name:</strong> {geoInfoData.as_name}
-                      </div>
-                      <div>
-                        <strong>AS Domain:</strong> {geoInfoData.as_domain}
-                      </div>
-                      <div>
-                        <strong>Country Code:</strong>{" "}
-                        {geoInfoData.country_code}
-                      </div>
-                      <div>
-                        <strong>Country:</strong> {geoInfoData.country}
-                      </div>
-                      <div>
-                        <strong>Continent Code:</strong>{" "}
-                        {geoInfoData.continent_code}
-                      </div>
-                      <div>
-                        <strong>Continent:</strong> {geoInfoData.continent}
+                {userIPData &&
+                  !userIPDataIsLoading &&
+                  !searchedIPDataIsLoading && (
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold">
+                        Your IP Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <strong>IP:</strong> {userIPData.ip}
+                        </div>
+                        <div>
+                          <strong>Hostname:</strong> {userIPData.hostname}
+                        </div>
+                        <div>
+                          <strong>City:</strong> {userIPData.city}
+                        </div>
+                        <div>
+                          <strong>Region:</strong> {userIPData.region}
+                        </div>
+                        <div>
+                          <strong>Country:</strong> {userIPData.country}
+                        </div>
+                        <div>
+                          <strong>Location:</strong> {userIPData.loc}
+                        </div>
+                        <div>
+                          <strong>Organization:</strong> {userIPData.org}
+                        </div>
+                        <div>
+                          <strong>Postal:</strong> {userIPData.postal}
+                        </div>
+                        <div className="md:col-span-2">
+                          <strong>Timezone:</strong> {userIPData.timezone}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                {geoInfoData &&
+                  !geoInfoDataIsLoading &&
+                  !searchedGeoInfoDataIsLoading && (
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold">
+                        Geographic Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <strong>ASN:</strong> {geoInfoData.asn}
+                        </div>
+                        <div>
+                          <strong>AS Name:</strong> {geoInfoData.as_name}
+                        </div>
+                        <div>
+                          <strong>AS Domain:</strong> {geoInfoData.as_domain}
+                        </div>
+                        <div>
+                          <strong>Country Code:</strong>{" "}
+                          {geoInfoData.country_code}
+                        </div>
+                        <div>
+                          <strong>Country:</strong> {geoInfoData.country}
+                        </div>
+                        <div>
+                          <strong>Continent Code:</strong>{" "}
+                          {geoInfoData.continent_code}
+                        </div>
+                        <div>
+                          <strong>Continent:</strong> {geoInfoData.continent}
+                        </div>
+                      </div>
+                    </div>
+                  )}
               </>
             )}
             {searchedIPDataIsLoading || searchedGeoInfoDataIsLoading ? (
@@ -423,6 +489,167 @@ export default function HomePage({
                 )}
               </>
             )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              defaultValue="item-1"
+            >
+              <AccordionItem value="item-1">
+                <AccordionTrigger
+                  className="text-lg font-semibold"
+                  disabled={savedSearchedDataIsLoading}
+                >
+                  History
+                </AccordionTrigger>
+                <AccordionContent className="flex flex-col w-full gap-4">
+                  {savedSearchedData?.data.length ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2 items-center">
+                        <Label>
+                          <Checkbox
+                            disabled={
+                              !savedSearchedData?.data ||
+                              deleteSelectedHistoryIsPending
+                            }
+                            checked={
+                              selectedHistory.length ===
+                                savedSearchedData?.data?.length &&
+                              selectedHistory.length > 0
+                            }
+                            onCheckedChange={(checked) => {
+                              if (checked as boolean) {
+                                setSelectedHistory(
+                                  savedSearchedData?.data?.map(
+                                    (data) => data.id
+                                  ) || []
+                                );
+                              } else {
+                                setSelectedHistory([]);
+                              }
+                            }}
+                          />
+                          {savedSearchedData?.data.length ===
+                          selectedHistory.length
+                            ? "Unselect All"
+                            : "Select All"}
+                        </Label>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        disabled={
+                          !selectedHistory.length ||
+                          deleteSelectedHistoryIsPending
+                        }
+                        className="cursor-pointer"
+                        onClick={() => deleteSelectedHistory(selectedHistory)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ) : null}
+                  <ul className="flex flex-col w-full gap-2 text-balance">
+                    {savedSearchedData?.data?.map((item) => (
+                      <li key={item.id} className="space-y-2">
+                        {Array.isArray(item.geolocationData) ? (
+                          item.geolocationData.map((geoData, index) => (
+                            <div
+                              key={index}
+                              className="text-sm border-b pb-2 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-4">
+                                <Checkbox
+                                  checked={selectedHistory.includes(item.id)}
+                                  onCheckedChange={(checked) => {
+                                    handleSetHistory(
+                                      item.id,
+                                      checked as boolean
+                                    );
+                                  }}
+                                  disabled={deleteSelectedHistoryIsPending}
+                                />
+                                <button
+                                  onClick={() => {
+                                    setSearchedIP(geoData.ip);
+                                    setIsFromHistory(true);
+                                    form.setValue("ip", geoData.ip);
+                                  }}
+                                  className="text-start group cursor-pointer w-full"
+                                >
+                                  <div className="group-hover:underline">
+                                    <strong>IP:</strong> {geoData.ip}
+                                  </div>
+                                  <div className="group-hover:underline">
+                                    <strong>City:</strong> {geoData.city}
+                                  </div>
+                                  <div className="group-hover:underline">
+                                    <strong>Country:</strong> {geoData.country}
+                                  </div>
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : item.geolocationData &&
+                          !Array.isArray(item.geolocationData) ? (
+                          <div className="text-sm flex items-start gap-2">
+                            <Checkbox
+                              checked={selectedHistory.includes(item.id)}
+                              onCheckedChange={(checked) => {
+                                handleSetHistory(item.id, checked as boolean);
+                              }}
+                              disabled={deleteSelectedHistoryIsPending}
+                            />
+                            <button
+                              onClick={() => {
+                                const geoData =
+                                  item.geolocationData as unknown as GeolocationData;
+                                setSearchedIP(geoData.ip);
+                                setIsFromHistory(true);
+                                form.setValue("ip", geoData.ip);
+                              }}
+                              className="text-start group w-full cursor-pointer"
+                            >
+                              <div className="group-hover:underline">
+                                <strong>IP:</strong>{" "}
+                                {
+                                  (
+                                    item.geolocationData as unknown as GeolocationData
+                                  ).ip
+                                }
+                              </div>
+                              <div className="group-hover:underline">
+                                <strong>City:</strong>{" "}
+                                {
+                                  (
+                                    item.geolocationData as unknown as GeolocationData
+                                  ).city
+                                }
+                              </div>
+                              <div className="group-hover:underline">
+                                <strong>Country:</strong>{" "}
+                                {
+                                  (
+                                    item.geolocationData as unknown as GeolocationData
+                                  ).country
+                                }
+                              </div>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500">
+                            No geolocation data available
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </CardContent>
         </Card>
       </div>
