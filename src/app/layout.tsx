@@ -9,6 +9,7 @@ import Provider from "@/components/Provider";
 const jost = Jost({
   variable: "--font-jost",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
