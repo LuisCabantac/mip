@@ -19,6 +19,30 @@ export async function getUserIPInfo() {
   }
 }
 
+export async function getUserIPInfoByIP(ipAdress: string) {
+  try {
+    const response = await fetch(
+      `https://ipinfo.io/${ipAdress}?token=${process.env.NEXT_PUBLIC_IPINFO_TOKEN}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch ip info data: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    throw error;
+  }
+}
+
 export async function getGeoInfoByIP(ipAdress: string) {
   try {
     const response = await fetch(
