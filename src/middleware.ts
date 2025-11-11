@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get("auth-token")?.value;
+  const requestHeaders = new Headers(request.headers);
   const { pathname } = request.nextUrl;
+
+  requestHeaders.set("x-pathname", pathname);
 
   const publicRoutes = ["/login"];
 
@@ -20,12 +23,20 @@ export function middleware(request: NextRequest) {
     if (isPublicRoute) {
       return NextResponse.redirect(new URL("/", request.url));
     }
-    return NextResponse.next();
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   if (!token) {
     if (isPublicRoute) {
-      return NextResponse.next();
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
     }
 
     if (isProtectedRoute || pathname === "/") {
@@ -35,7 +46,11 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 }
 
 export const config = {
