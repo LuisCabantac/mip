@@ -70,3 +70,40 @@ export async function createHistory(geolocationData: GeolocationData) {
     throw error;
   }
 }
+
+export async function deleteMultipleHistory(ids: string[]) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth-token")?.value;
+
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const requestBody = {
+      ids,
+    };
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/history`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to delete history data: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    throw error;
+  }
+}
